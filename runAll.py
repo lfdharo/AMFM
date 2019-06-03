@@ -1,9 +1,10 @@
-__author__ = 'luisdhe'
+__author__ = 'luisdhe' , 'vanmaren'
 
 import os
 import argparse
 import configargparse as configuration
 import yaml
+import sys
 
 import preProcessModule as pp
 import trainModule as tm
@@ -13,6 +14,10 @@ root_dir = os.path.dirname(os.path.realpath(__file__)) #con esta sentencia estam
 submissions_dir = root_dir + '/'
 train_data_dir = root_dir + '/'
 scripts_dir = root_dir + '/tools/'
+
+#############3#adaptar para usar con estting de alguna forma
+# train_data_dir = root_dir + '/' + 'FILES INPUT ' + '/' #create a files input folder
+# scripts_dir = root_dir + '/' + 'FILES INPUT/tools' + '/' #this is where your preprocessing tools will be located
 
 # Relative path for files to be used for training the language models
 #
@@ -275,29 +280,8 @@ submissionsPerLanguagePerYear = {
     # },
 }
 
-#NFOLDS = 1
-
-
-dictSizesTrain = {15000: 2500}  # FOR WAT2018-My-En
-# dictSizesTrain = {13000: 2500}  # FOR WAT2016-Ja-Hi
-# dictSizesTrain = {10000: 2500}
-# dictSizesTrain = {7000: 1500} # FOR HINDEN_HI_EN
-
 
 def main():
-
-    # config = configuration.ArgParser(default_config_files=['/home/enrique/Escritorio/TFG_Pendrive/AMFM/Settings.yaml'])
-    # config = configuration.ArgParser()
-    # config.add('-c', '--my-config', type=str, dest='MyConfigFilePath', required=False, is_config_file=False, help='config file path')
-    # config.add('--genome', required=True,help='path to genome file')  # this option can be set in a config file because it starts with '--'
-    # config.add('-d', '--num_cores',dest='NofCores', help='Number of cores',env_var='NUM_CORES')  # this option can be set in a config file because it starts with '--'
-    # args1 = config.parse_args()
-    # numcores = args1.NofCores
-    # filepath = args1.MyConfigFilePath
-    # print(numcores)
-    # print(filepath)
-
-
 
 
     parser = argparse.ArgumentParser()
@@ -311,47 +295,48 @@ def main():
 
     args = parser.parse_args()
     numcores = args.NofCores
-    filepath = args.MyConfigFilePath
-    print('The number of Cores you setted up to use are: ' + numcores)
-    print('The current configuration file you are using is : ' + filepath)
+    filepath = args.MyConfigFilePath    #path for the configuration File is input when executing script with -c argument
+
+    if filepath == '' or filepath == None:
+        print('You have not provided a configuration file')
+        sys.exit()
+    else:
+        print('The current configuration file you are using is : ' + filepath)
+        print('The number of Cores you setted up to use are: ' + numcores)
+
 
     with open(filepath, 'r') as ymlfile:
         cfg = yaml.load(ymlfile)
 
-    # for element in cfg:
-    #     if element["calculatescores"] == "calculatescores":
-    #         for subelement in element:
-    #             if subelement["name"] == "NFOLDS":
-    #                 subelement["value"] = "4"
+    dictSizesTrain = {
+        'MaxValue': cfg['runall']['dictSizesTrain']['Maxvalue'],
+        'MinValue': cfg['runall']['dictSizesTrain']['Minvalue']
+    }  # FOR WAT2018-My-En
 
-    NFOLDS = cfg['runall']['NFOLDS']
-    dictSizesTrain = {cfg['runall']['dictSizesTrain']['Maxvalue']: cfg['runall']['dictSizesTrain']['Minvalue']}  # FOR WAT2018-My-En
-
+    FilesPerLanguageForLM = cfg['runall']['filesPerLanguageForLM']
+    FilesPerLanguage = cfg['runall']['filesPerLanguage']
     overwrite_all = args.overwrite
-    # overwrite_all = True
+    overwrite_all = True
+
     # Preprocessing
     cP = pp.PreProcessingClass(submissionsPerLanguagePerYear=submissionsPerLanguagePerYear,
-                              filesPerLanguage=filesPerLanguage, filesPerLanguageForLM=filesPerLanguageForLM,
+                              filesPerLanguage=FilesPerLanguage, filesPerLanguageForLM=FilesPerLanguageForLM,
                               train_data_dir=train_data_dir, scripts_dir=scripts_dir, submissions_dir=submissions_dir, cfg=cfg)
     cP.preprocess_files(bDoAll=overwrite_all)
 
     # Create the training set for the SVD
-    # pp.createTrainingFiles(filesPerLanguage, overwrite_all=overwrite_all) #original
     cP.createTrainingFiles(filesPerLanguage, overwrite_all=overwrite_all)
-    # pp.PreProcessingClass.createTrainingFiles(filesPerLanguage, overwrite_all=overwrite_all)
     #raw_input('Press a key to continue')
 
     # Training SVD and creating training files
-    # tm.createOutputDirs()
-    # tm.fntTrainLMs(train_data_dir, filesPerLanguageForLM, overwrite_all=overwrite_all)
-    # tm.fntCreateSVDs(train_data_dir, filesPerLanguage, dictSizesTrain, NFOLDS, args=args)
-
-    tM = tm.TrainingClass(train_data_dir, filesPerLanguageForLM, filesPerLanguage, dictSizesTrain, cfg)
+    tM = tm.TrainingClass(train_data_dir, filesPerLanguageForLM, FilesPerLanguage, dictSizesTrain, cfg)
     tM.createOutputDirs()
     tM.fntTrainLMs(train_data_dir, filesPerLanguageForLM, overwrite_all=overwrite_all) #ayuda para dejar esto clean
     tM.fntCreateSVDs(args=args)
+
     # Calculating scores
-    # cs.fntProcessSubmissions(submissionsPerLanguagePerYear, overwrite_all=overwrite_all, bAverageFiles=False, fpl=filesPerLanguage)
+    #cS = cs.CalculateScoresClass(cfg)
+    #cS.fntProcessSubmissions(submissionsPerLanguagePerYear, overwrite_all=overwrite_all, bAverageFiles=False, fpl=FilesPerLanguage)
 
 
 if __name__ == '__main__':

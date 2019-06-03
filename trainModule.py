@@ -1,4 +1,4 @@
-__author__ = 'luisdhe'
+__author__ = 'luisdhe' , 'vanmaren'
 import os
 import subprocess
 import multiprocessing
@@ -21,7 +21,7 @@ with open('/home/enrique/Escritorio/TFG_Pendrive/AMFM/Settings.yaml', 'r') as ym
 type_vectorizer = 'counts'
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
-train_data_dir = root_dir + '/ASPEC/ASPEC-JE/train/'
+train_data_dir = root_dir + '/'
 dir_lm_out = root_dir + '/lms/' #Aqui elejimos donde se va buscar y volcar las salidas de los LM mas o menos
 dir_svd_mono = root_dir + '/svd_mono_' + type_vectorizer + '/'
 
@@ -362,6 +362,8 @@ class TrainingClass():
         self.dictSizesTrain = dictSizesTrain
         self.cfg = cfg
 
+    #PASO 1 crear los directorios de salida del entrenamiento
+
     def createOutputDirs(self):
         print("***** Creating output directories *****")
 
@@ -375,8 +377,32 @@ class TrainingClass():
 
         print("... Done")
 
-    def createLM_wrapper(self,args):
-        return self.createLM(*args)
+   # def createLM_wrapper(self,args):
+    #    return self.createLM(*args)
+
+    # crea los modelos de lenguaje a partir de los ficheros que se van a entrenar sin preprocesar
+
+    def fntTrainLMs(self, train_data_dir, filesPerLanguageForLM, overwrite_all=False):
+        #    pool = MyPool(NUM_MAX_CORES)
+        # number_of_workers = NUM_MAX_CORES
+        number_of_cores = self.cfg['trainModule']['NUM_MAX_CORES']
+
+        with Pool(number_of_cores) as p:
+            tmpTask = []
+            for (lang, files) in filesPerLanguageForLM.items():
+                for file in files:
+                    tmpTask.append((train_data_dir, lang, file, overwrite_all))
+
+            # results = [p.map(createLM_wrapper, tmpTask)]
+            results = [p.starmap(self.createLM, tmpTask)]
+            for res in results[0]:
+                if res == "NO":
+                    print("ERROR: One of the LM could not be created.")
+                    exit(-1)
+
+        # pool.close()
+        # pool.join()
+        print("Finish")
 
     # Todo: Create a single text file with all the filenames or do it manually with all the training data
     def createLM(self, train_data_dir, lang, filename, bRetrain=False):
@@ -384,6 +410,7 @@ class TrainingClass():
         print("***** Extract n-gram counts for language " + lang + " from file: " + filename + " ******")
 
         txt_file = train_data_dir + '/' + filename + '.' + 'lower' + '.' + lang
+
         # if lang != 'en':  # We need first to tokenize in characters
         #     txt_file = train_data_dir + '/' + filename + '.' + lang + '.lower_' + lang
         #     with codecs.open(train_data_dir + '/' + filename + '.' + lang + '.lower', 'r', 'utf-8') as f, \
@@ -464,6 +491,8 @@ class TrainingClass():
         print("... Done " + file + ' (' + lang + ") and Fold " + str(nF) + ' in ' + str(t2 - t1))
         return "OK"
 
+    #metodo para crear las matrices de SVD para el
+
     def createMonolingualSVDFromTrainingFiles(self, size_file, size_svd, nF, retrain_svd):
         print("***** Creating Monolingual SVD files for size " + str(size_svd) + " and Fold " + str(nF) + " ******")
         t1 = datetime.datetime.now()
@@ -499,28 +528,6 @@ class TrainingClass():
         pool.join()
         print("Finish")
 
-    def fntTrainLMs(self, train_data_dir, filesPerLanguageForLM, overwrite_all=False):
-        #    pool = MyPool(NUM_MAX_CORES)
-        # number_of_workers = NUM_MAX_CORES
-        number_of_workers = self.cfg['trainModule']['NUM_MAX_CORES']
-
-        with Pool(number_of_workers) as p:
-            tmpTask = []
-            for (lang, files) in filesPerLanguageForLM.items():
-                for file in files:
-                    tmpTask.append((train_data_dir, lang, file, overwrite_all))
-
-            # results = [p.map(createLM_wrapper, tmpTask)]
-            results = [p.starmap(self.createLM, tmpTask)]
-            for res in results[0]:
-                if res == "NO":
-                    print("ERROR: One of the LM could not be created.")
-                    exit(-1)
-
-        # pool.close()
-        # pool.join()
-        print("Finish")
-
     def fntCreateSVDs(self, args):
         global aTypeLingualExp
 
@@ -545,7 +552,10 @@ class TrainingClass():
         print("***** Creating training file for " + file + ' src: ' + src + ' and tgt: ' + tgt + " ******")
 
         NFOLDS = self.cfg['trainModule']['NFOLDS']
-        dictSizesTrain = {cfg['trainModule']['dictSizesTrain']['Max']: cfg['trainModule']['dictSizesTrain']['Min']}
+        dictSizesTrain = {
+            'MaxValue': cfg['trainModule']['dictSizesTrain']['Max'],
+            'MinValue': cfg['trainModule']['dictSizesTrain']['Min']
+        }
 
         if tgt != 'en' and tgt != 'ko' and tgt != 'hi':
             train_file_path_tgt = file + '.lower_' + tgt
@@ -654,8 +664,8 @@ def main():
     parser.add_argument('-overwrite', help='Overwrite all the files.', action='store_true')
     parser.add_argument('-ret_svd', help='Retrain the svd matrices.', action='store_true')
 
-    parser.add_argument('-c', '--my-config', type=str, dest='MyConfigFilePath', required=False, is_config_file=False, help='config file path')
-    parser.add_argument('-d', '--num_cores', dest='NofCores', help='Number of cores', env_var='NUM_CORES')  # this option can be set in a config file because it starts with '--'
+    parser.add_argument('-c', '--my-config', type=str, dest='MyConfigFilePath', required=False, help='config file path')
+    parser.add_argument('-d', '--num_cores', dest='NofCores', help='Number of cores')  # this option can be set in a config file because it starts with '--'
 
 
 
@@ -667,16 +677,24 @@ def main():
     with open(filepath, 'r') as ymlfile:
         cfg = yaml.load(ymlfile)
 
+    FilesPerLanguageForLM = cfg['trainModule']['filesPerLanguageForLM']
+    FilesPerLanguage = cfg['trainModule']['filesPerLanguage']
+
     overwrite_all = args.overwrite
 
-    dictSizesTrain = {cfg['trainModule']['dictSizesTrain']['Max']: cfg['trainModule']['dictSizesTrain']['Min']}
+    dictSizesTrain = {
+        'Max': cfg['trainModule']['dictSizesTrain']['Max'],
+        'Min': cfg['trainModule']['dictSizesTrain']['Min']
+    }
 
-    tClass= TrainingClass(train_data_dir, filesPerLanguageForLM, filesPerLanguage, dictSizesTrain, cfg)
+
+    tClass= TrainingClass(train_data_dir, FilesPerLanguageForLM, FilesPerLanguage, dictSizesTrain, cfg)
 
     tClass.createOutputDirs()
-    tClass.fntTrainLMs(train_data_dir, filesPerLanguageForLM, overwrite_all=overwrite_all)
+    tClass.fntTrainLMs(train_data_dir, FilesPerLanguageForLM, overwrite_all=overwrite_all)
     tClass.createTrainingFiles(overwrite_all=overwrite_all)
     # tClass.fntCreateSVDs(train_data_dir, filesPerLanguage, dictSizesTrain, NFOLDS, args=args)
+
     tClass.fntCreateSVDs(args=args)
 
 
