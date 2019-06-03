@@ -8,7 +8,7 @@ import sys
 
 import preProcessModule as pp
 import trainModule as tm
-import calculateScores as cs
+# import calculateScores as cs
 
 root_dir = os.path.dirname(os.path.realpath(__file__)) #con esta sentencia estamos partiedno el origen desde el Train para bajo
 submissions_dir = root_dir + '/'
@@ -302,7 +302,7 @@ def main():
         sys.exit()
     else:
         print('The current configuration file you are using is : ' + filepath)
-        print('The number of Cores you setted up to use are: ' + numcores)
+        print('The number of Cores you setted up to use are: ' + str(numcores))
 
 
     with open(filepath, 'r') as ymlfile:
@@ -313,15 +313,18 @@ def main():
         'MinValue': cfg['runall']['dictSizesTrain']['Minvalue']
     }  # FOR WAT2018-My-En
 
-    FilesPerLanguageForLM = cfg['runall']['filesPerLanguageForLM']
-    FilesPerLanguage = cfg['runall']['filesPerLanguage']
+    filesPerLanguageForLM = cfg['runall']['filesPerLanguageForLM']
+    filesPerLanguage = cfg['runall']['filesPerLanguage']
     overwrite_all = args.overwrite
     overwrite_all = True
 
     # Preprocessing
     cP = pp.PreProcessingClass(submissionsPerLanguagePerYear=submissionsPerLanguagePerYear,
-                              filesPerLanguage=FilesPerLanguage, filesPerLanguageForLM=FilesPerLanguageForLM,
-                              train_data_dir=train_data_dir, scripts_dir=scripts_dir, submissions_dir=submissions_dir, cfg=cfg)
+                                filesPerLanguage=filesPerLanguage,
+                                filesPerLanguageForLM=filesPerLanguageForLM,
+                                train_data_dir=cfg['directories']['INPUT'],
+                                scripts_dir=scripts_dir,
+                                submissions_dir=submissions_dir, cfg=cfg)
     cP.preprocess_files(bDoAll=overwrite_all)
 
     # Create the training set for the SVD
@@ -329,9 +332,15 @@ def main():
     #raw_input('Press a key to continue')
 
     # Training SVD and creating training files
-    tM = tm.TrainingClass(train_data_dir, filesPerLanguageForLM, FilesPerLanguage, dictSizesTrain, cfg)
+    tM = tm.TrainingClass(train_data_dir=cfg['directories']['INPUT'],
+                          filesPerLanguageForLM=filesPerLanguageForLM,
+                          filesPerLanguage=filesPerLanguage,
+                          dictSizesTrain=dictSizesTrain,
+                          cfg=cfg)
     tM.createOutputDirs()
-    tM.fntTrainLMs(train_data_dir, filesPerLanguageForLM, overwrite_all=overwrite_all) #ayuda para dejar esto clean
+    tM.fntTrainLMs(train_data_dir=cfg['directories']['INPUT'],
+                   filesPerLanguageForLM=filesPerLanguageForLM,
+                   overwrite_all=overwrite_all) #ayuda para dejar esto clean
     tM.fntCreateSVDs(args=args)
 
     # Calculating scores

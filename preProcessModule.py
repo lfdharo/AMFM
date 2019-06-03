@@ -390,105 +390,46 @@ class PreProcessingClass():
         return self.cleanFile(*args)
 
     def cleanFile(self, file, src, tgt):
-        filename_out_src = file + '.lower.' + src
-        filename_out_tgt = file + '.lower.' + tgt
+        filename_in_src = file + '.lower.' + src
+        filename_in_tgt = file + '.lower.' + tgt
 
-        file_src_clean = file + '.clean.' + src
-        file_tgt_clean= file + '.clean.' + tgt
+        file_out_src_clean = file + '.clean.' + src
+        file_out_tgt_clean= file + '.clean.' + tgt
 
-        MIN_SENTENCE_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH']
-        MAX_SENTENCE_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH']
+        if src in lang_char_tokenization:
+            MIN_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH_CHARS']
+            MAX_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH_CHARS']
+        else:
+            MIN_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH']
+            MAX_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH']
 
-        MIN_SENTENCE_LENGTH_CHARS = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH_CHARS']
-        MAX_SENTENCE_LENGTH_CHARS = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH_CHARS']
+        if tgt in lang_char_tokenization:
+            MIN_SENTENCE_TGT_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH_CHARS']
+            MAX_SENTENCE_TGT_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH_CHARS']
+        else:
+            MIN_SENTENCE_TGT_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH']
+            MAX_SENTENCE_TGT_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH']
 
-        #En caso de que el idioma de src o tgt fuese jp cn o ko tendriamos que hacer clean con longitud por caracteres en caso de que no solo por longitud de la frase
-
-        with open(filename_out_src, 'r') as r1, open(filename_out_tgt, 'r') as r2, open(file_src_clean,'w') as w1, open(file_tgt_clean, 'w') as w2:
-         lines1= r1.readlines()
-         lines2= r2.readlines()
-         if src in lang_char_tokenization: #lang_char_tokenization = ['jp', 'cn', 'ko']
-
-           # with open(filename_out_src, 'r') as f_src, open(file_src_clean, 'w') as f_tgt:
-               # lines = r1.readlines()
-                #counterOfDeletedLines = []
-                for line in lines1: # enumerate(lines,start=1):
-                    numlinea = lines1.index(line)
-                    line1ToRemove = lines1[numlinea]
-                    line2ToRemove = lines2[numlinea]
-                    remove = False
-                    if( len(line) > MAX_SENTENCE_LENGTH_CHARS or len(line) < MIN_SENTENCE_LENGTH_CHARS):
-                       # counterOfDeletedLines.append(enumerate(line))
-                       lines2.remove(line2ToRemove)
-                       lines1.remove(line1ToRemove)
-                       remove = True
-                    else:
-                        if tgt in lang_char_tokenization:
-                            linea2 = lines2[numlinea]
-                            if (len(linea2) > MAX_SENTENCE_LENGTH_CHARS or len(linea2) < MIN_SENTENCE_LENGTH_CHARS):
-                                lines2.remove(line2ToRemove)
-                                lines1.remove(line1ToRemove)
-                                remove = True
-                        if tgt not in lang_char_tokenization:
-                            if (len(linea2) > MAX_SENTENCE_LENGTH or len(linea2) < MIN_SENTENCE_LENGTH):
-                                lines2.remove(line2ToRemove)
-                                lines1.remove(line1ToRemove)
-                                remove = True
-                    if(remove == False):
-                        w1.write(line1ToRemove)
-                        w2.write(line2ToRemove)
-
-         if src not in lang_char_tokenization:
-            for line in lines1:  # enumerate(lines,start=1):
-                remove = False
-                numlinea = lines1.index(line)
-                line1ToRemove = lines1[numlinea]
-                line2ToRemove = lines2[numlinea]
-                if (len(line.split()) > MAX_SENTENCE_LENGTH or len(line.split()) < MIN_SENTENCE_LENGTH):
-                    # counterOfDeletedLines.append(enumerate(line))
-                    lines2.remove(line2ToRemove)
-                    lines1.remove(line1ToRemove)
-                    remove = True
+        with open(filename_in_src, 'r') as r1, open(filename_in_tgt, 'r') as r2, \
+                open(file_out_src_clean,'w') as w1, open(file_out_tgt_clean, 'w') as w2:
+            for line_src, line_tgt in zip(r1, r2):
+                len_line_src = len(line_src.split())
+                len_line_tgt = len(line_tgt.split())
+                if (len_line_src > MAX_SENTENCE_SRC_LENGTH or len_line_src < MIN_SENTENCE_SRC_LENGTH or
+                    len_line_tgt > MAX_SENTENCE_TGT_LENGTH or len_line_src < MIN_SENTENCE_TGT_LENGTH):
+                    continue
                 else:
-                    if tgt in lang_char_tokenization:
-                        linea2 = lines2[numlinea]
-                        if (len(linea2) > MAX_SENTENCE_LENGTH_CHARS or len(linea2) < MIN_SENTENCE_LENGTH_CHARS):
-                            lines2.remove(line2ToRemove)
-                            lines1.remove(line1ToRemove)
-                            remove = True
-                    if tgt not in lang_char_tokenization:
-                        if (len(linea2.split()) > MAX_SENTENCE_LENGTH or len(linea2).split() < MIN_SENTENCE_LENGTH):
-                            lines2.remove(line2ToRemove)
-                            lines1.remove(line1ToRemove)
-                            remove = True
-                if (remove == False):
-                    w1.write(line1ToRemove)
-                    w2.write(line2ToRemove)
+                    w1.write(line_src)
+                    w2.write(line_tgt)
 
-
-
-
-            #else:
-            # cmd = 'perl ' + SCRIPTS_DIR + 'perl/clean-corpus-n.perl -lc ' + file + '.token ' + src + ' ' + tgt + ' ' + file \
-            #       + '.clean ' + str(MIN_SENTENCE_LENGTH_CHARS) + ' ' + str(MAX_SENTENCE_LENGTH_CHARS)
-        #else:
-         #   cmd = 'perl ' + SCRIPTS_DIR + 'perl/clean-corpus-n.perl -lc ' + file + '.token ' + src + ' ' + tgt + ' ' + file \
-          #        + '.clean ' + str(MIN_SENTENCE_LENGTH) + ' ' + str(MAX_SENTENCE_LENGTH)
-
-        # p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        # for line in p.stdout.readlines():
-        #     print('----' + file + ' > ' + line)
-      #  p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
-       # print('----' + file + ' > ' + p.decode())
-        # retval = p.wait()
-        if not os.path.exists(filename_out_src) or os.path.getsize(filename_out_src) == 0:
-            print('ERROR: cleaning file ' + filename_out_src)
+        if not os.path.exists(file_out_src_clean) or os.path.getsize(file_out_src_clean) == 0:
+            print('ERROR: cleaning file ' + file_out_src_clean)
             return "NO"
-        elif not os.path.exists(filename_out_tgt) or os.path.getsize(filename_out_tgt) == 0:
-            print('ERROR: cleaning file ' + filename_out_tgt)
+        elif not os.path.exists(file_out_tgt_clean) or os.path.getsize(file_out_tgt_clean) == 0:
+            print('ERROR: cleaning file ' + file_out_tgt_clean)
             return "NO"
 
-        print("... Done " + file + " saving in " + file_src_clean + ' and ' + file_tgt_clean)
+        print("... Done " + file + " saving in " + file_out_src_clean + ' and ' + file_out_tgt_clean)
         return "OK"
 
 

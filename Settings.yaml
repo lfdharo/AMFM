@@ -19,8 +19,8 @@ filesPerLanguageForLM:
 
 #################################################################
 directories:
-  INPUT: /Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_INPUT
-  OUTPUT: /Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_OUTPUT
+  INPUT: /media/lfdharo/97481d74-4cb5-4983-9a69-a748c32711ba/Data/AMFM_WAT/Datasets/
+  OUTPUT: /media/lfdharo/97481d74-4cb5-4983-9a69-a748c32711ba/Data/AMFM_WAT/Datasets/
 #################################################################
 runall:
  NFOLDS: *folds

@@ -14,8 +14,8 @@ import random
 import yaml
 from math import floor
 
-with open('/home/enrique/Escritorio/TFG_Pendrive/AMFM/Settings.yaml', 'r') as ymlfile:
-    cfg = yaml.load(ymlfile)
+# with open('/home/enrique/Escritorio/TFG_Pendrive/AMFM/Settings.yaml', 'r') as ymlfile:
+#     cfg = yaml.load(ymlfile)
 
 #type_vectorizer = 'tfidf'
 type_vectorizer = 'counts'
@@ -498,7 +498,7 @@ class TrainingClass():
         t1 = datetime.datetime.now()
         print("Starting at " + str(t1))
 
-        num_cores_mono = {cfg['trainModule']['num_cores_mono']['Max']: cfg['trainModule']['num_cores_mono']['Min']}
+        num_cores_mono = {self.cfg['trainModule']['num_cores_mono']['Max']: self.cfg['trainModule']['num_cores_mono']['Min']}
 
         pool = multiprocessing.Pool(processes=num_cores_mono[size_svd])
         tmpTask = []
@@ -531,7 +531,7 @@ class TrainingClass():
     def fntCreateSVDs(self, args):
         global aTypeLingualExp
 
-        dict_train_sizes = {cfg['runall']['dictSizesTrain']['Maxvalue']: cfg['runall']['dictSizesTrain']['Minvalue']}  # FOR WAT2018-My-En
+        dict_train_sizes = {self.cfg['runall']['dictSizesTrain']['Maxvalue']: self.cfg['runall']['dictSizesTrain']['Minvalue']}  # FOR WAT2018-My-En
         NFOLDS = self.cfg['trainModule']['NFOLDS']
 
         for typeLingualExp in aTypeLingualExp:
@@ -553,8 +553,8 @@ class TrainingClass():
 
         NFOLDS = self.cfg['trainModule']['NFOLDS']
         dictSizesTrain = {
-            'MaxValue': cfg['trainModule']['dictSizesTrain']['Max'],
-            'MinValue': cfg['trainModule']['dictSizesTrain']['Min']
+            'MaxValue': self.cfg['trainModule']['dictSizesTrain']['Max'],
+            'MinValue': self.cfg['trainModule']['dictSizesTrain']['Min']
         }
 
         if tgt != 'en' and tgt != 'ko' and tgt != 'hi':
