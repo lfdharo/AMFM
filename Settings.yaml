@@ -1,0 +1,120 @@
+#settings .yaml
+#author : ' vanmaren'
+#description: yaml file for confirating paramaters for Training process
+#interesting parameters:
+
+
+calculatescores:
+  MIN_COUNTS: &MIN_COUNTS 0  # Number of times a word must occur to be included in the SVM model
+  MIN_NGRAM_ORDER: &MIN_NGRAM_ORDER 1
+  MAX_NGRAM_ORDER: &MAX_NGRAM_ORDER 3
+  NUM_MAX_CORES: &num_max_cores 4
+  MIN_LOG_PROB: -10
+  STARTING_VALUE_FEATURES: 25
+  NFOLDS: &folds  1 # Number of NFOLDS cross-training sets we are creating for the AM experiments
+
+filesPerLanguageForLM:
+  'jp': ['JIJI_CORPUS/train']
+  'en': [ 'JIJI_CORPUS/train']
+
+#################################################################
+#Create the directories where you will like to have your inputs and outputs
+directories:
+  INPUT: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_INPUT/
+  OUTPUT: /Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_OUTPUT/
+#################################################################
+runall:
+ rootdir: &root_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/ #Directory where you are working for Train purposes and you have you scripts, you should create FILES_INPUT directory and FILES_OUPUT
+ submissions_dir: &submissions_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/
+ train_data_dir: &train_data_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_INPUT/
+ scripts_dir: &scripts_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_INPUT/tools/
+ NFOLDS: *folds
+ Preprocessing:
+   Clean: True
+   Lowercase: True
+   Removepunctuation: True
+   Tokenize: True #parameter for preprocessing with tokenizer
+   TargetLang:
+   SourceLang:
+ dictSizesTrain:
+    Maxvalue: &MAX_DICT_SIZE 15000 #total of lines in the training file
+    Minvalue: &MIN_DICT_SIZE 2500  # FOR WAT2018-My-En (size of the  SVD)
+ filesPerLanguageForLM: &filesPerLanguageForLM # we could use pointers * so every script has everything setted up correctly
+    'jp': ['JIJI_CORPUS/train']
+    'en': [ 'JIJI_CORPUS/train']
+ filesPerLanguage: &filesPerLanguage
+    'en-jp' : ['JIJI_CORPUS/train']
+   # 'jp-en': ['JIJI_CORPUS/train']
+ filesPerLanguagePeryear:
+   #add here extra files for training purposes and in the same format e.g.:
+  # 'en-jp':[
+  #    #     '2015':[
+  #    #        'source': 'ASPEC/ASPEC-JE/devtest/devtest.en',
+  #    #        'reference': 'ASPEC/ASPEC-JE/devtest/devtest.jp.ref',
+  #    #        'test_id': 'devtest_en-jp',
+  #    #        'submissions': [
+  #    #            'ASPEC/ASPEC-JE/devtest/devtest.jp.google',
+  #    #        ],
+  #    #     ],
+  #    # ],
+ submissionsPerLanguagePerYear: {}
+
+
+#################################################################
+
+preProcessModule:
+  NFOLDS: *folds
+  NUM_CORES_MAX: *num_max_cores
+  aSizesTrain: *MAX_DICT_SIZE #ESTE numero ha de coincidir con runall:DicSizesTrain?????????? del runall?
+  MIN_SENTENCE_LENGTH: 1
+  MAX_SENTENCE_LENGTH: 50
+
+  MIN_SENTENCE_LENGTH_CHARS: 1
+  MAX_SENTENCE_LENGTH_CHARS: 150
+
+  SCRIPTS_DIR: None
+  TRAIN_DATA_DIR: None
+  filesPerLanguageForLM: *filesPerLanguageForLM
+  filesPerLanguage: *filesPerLanguage
+  submissionsPerLanguagePerYear:
+
+  Tokenize : true #use the default tokenizing scripts (pearl)
+  Tokenize_Script : '' #insert your script for tokenizing hear ( set Tokenize to false)
+
+  attributes_per_language:
+      en : 'words'
+      jp: 'chars'
+  rootdir: *root_dir
+  submissions_dir: *submissions_dir
+  train_data_dir: *train_data_dir
+  scripts_dir: *scripts_dir
+  lang_char_tokenization: ['jp', 'cn', 'ko'] #characters that require tokenization/clean/lower by characters
+#################################################################
+
+trainModule: #añadir flag para tokenizacion por word o charc
+  NFOLDS: *folds
+  MIN_COUNTS:  *MIN_COUNTS # Number of times a word must occur to be included in the SVM model
+  MIN_NGRAM_ORDER: *MIN_NGRAM_ORDER
+  MAX_NGRAM_ORDER: *MAX_NGRAM_ORDER
+  NUM_MAX_CORES: *num_max_cores
+  dictSizesTrain:
+    Max: *MAX_DICT_SIZE
+    Min: *MIN_DICT_SIZE  # For WAT2016-JA-HI
+  num_cores_mono:
+    Max: 2500
+    Min: 5
+  filesPerLanguageForLM: *filesPerLanguageForLM
+  filesPerLanguage: *filesPerLanguage
+  rootdir: *root_dir
+  submissions_dir: *submissions_dir
+  train_data_dir: *train_data_dir
+  scripts_dir: *scripts_dir
+  dir_svd_mono: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/svd_mono_counts/ #in svd_mono_counts 'counts'= type vectoricer ('counts','tfidf)
+  dir_lm_out: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/lms/ #directory where the lm will be at after Train ( change to OUTPUT FILES)*******************
+  type_vectorizer: 'counts'
+################################################################# 
+vesctor_space:
+
+
+
+
