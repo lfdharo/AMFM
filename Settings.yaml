@@ -18,11 +18,16 @@ filesPerLanguageForLM:
   'en': [ 'JIJI_CORPUS/train']
 
 #################################################################
+#Create the directories where you will like to have your inputs and outputs
 directories:
-  INPUT: /media/lfdharo/97481d74-4cb5-4983-9a69-a748c32711ba/Data/AMFM_WAT/Datasets/
-  OUTPUT: /media/lfdharo/97481d74-4cb5-4983-9a69-a748c32711ba/Data/AMFM_WAT/Datasets/
+  INPUT: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_INPUT/
+  OUTPUT: /Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_OUTPUT/
 #################################################################
 runall:
+ rootdir: &root_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/ #Directory where you are working for Train purposes and you have you scripts, you should create FILES_INPUT directory and FILES_OUPUT
+ submissions_dir: &submissions_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/
+ train_data_dir: &train_data_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_INPUT/
+ scripts_dir: &scripts_dir /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/FILES_INPUT/tools/
  NFOLDS: *folds
  Preprocessing:
    Clean: True
@@ -40,6 +45,20 @@ runall:
  filesPerLanguage: &filesPerLanguage
     'en-jp' : ['JIJI_CORPUS/train']
    # 'jp-en': ['JIJI_CORPUS/train']
+ filesPerLanguagePeryear:
+   #add here extra files for training purposes and in the same format e.g.:
+  # 'en-jp':[
+  #    #     '2015':[
+  #    #        'source': 'ASPEC/ASPEC-JE/devtest/devtest.en',
+  #    #        'reference': 'ASPEC/ASPEC-JE/devtest/devtest.jp.ref',
+  #    #        'test_id': 'devtest_en-jp',
+  #    #        'submissions': [
+  #    #            'ASPEC/ASPEC-JE/devtest/devtest.jp.google',
+  #    #        ],
+  #    #     ],
+  #    # ],
+ submissionsPerLanguagePerYear: {}
+
 
 #################################################################
 
@@ -57,6 +76,7 @@ preProcessModule:
   TRAIN_DATA_DIR: None
   filesPerLanguageForLM: *filesPerLanguageForLM
   filesPerLanguage: *filesPerLanguage
+  submissionsPerLanguagePerYear:
 
   Tokenize : true #use the default tokenizing scripts (pearl)
   Tokenize_Script : '' #insert your script for tokenizing hear ( set Tokenize to false)
@@ -64,7 +84,11 @@ preProcessModule:
   attributes_per_language:
       en : 'words'
       jp: 'chars'
-
+  rootdir: *root_dir
+  submissions_dir: *submissions_dir
+  train_data_dir: *train_data_dir
+  scripts_dir: *scripts_dir
+  lang_char_tokenization: ['jp', 'cn', 'ko'] #characters that require tokenization/clean/lower by characters
 #################################################################
 
 trainModule: #añadir flag para tokenizacion por word o charc
@@ -81,6 +105,13 @@ trainModule: #añadir flag para tokenizacion por word o charc
     Min: 5
   filesPerLanguageForLM: *filesPerLanguageForLM
   filesPerLanguage: *filesPerLanguage
+  rootdir: *root_dir
+  submissions_dir: *submissions_dir
+  train_data_dir: *train_data_dir
+  scripts_dir: *scripts_dir
+  dir_svd_mono: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/svd_mono_counts/ #in svd_mono_counts 'counts'= type vectoricer ('counts','tfidf)
+  dir_lm_out: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/train/lms/ #directory where the lm will be at after Train ( change to OUTPUT FILES)*******************
+  type_vectorizer: 'counts'
 ################################################################# 
 vesctor_space:
 
