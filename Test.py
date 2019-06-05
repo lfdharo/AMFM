@@ -5,6 +5,7 @@ __version__ = "$Revision: 0.0.0"
 # Common python modules
 import os, sys, string
 import argparse
+import configargparse
 import yaml
 import pickle
 from sklearn.externals import joblib
@@ -13,8 +14,7 @@ from lm import ArpaLM
 #import codecs
 import numpy as np
 
-#host = 'localhost'  # '127.0.0.1' can also be used
-#DEFAULT_PORT = 52000
+
 sc = set(['-', "'", '%'])
 to_remove = ''.join([c for c in string.punctuation if c not in sc])
 table = dict((ord(char), u'') for char in to_remove)
@@ -69,47 +69,46 @@ def demo():
 ##### Metodo inicial que comienza to do lo que tiene que hacer el calc AMFM
 
 def processSubmissionNew(target, submission, cs, fm, am):
-        ### if de que si target y submission ya estan preprocesados no hacer nada de preprocesado
-        (target, submission) = cs.doProcessFromStrings(ref=target, pred=submission)
+    ### if de que si target y submission ya estan preprocesados no hacer nada de preprocesado
+    #(target, submission) = cs.doProcessFromStrings(ref=target, pred=submission)
+    results = []
+    alpha = cs.alpha
+    with open(target,'r') as r1, open(submission,'r') as r2:
+        for line_target,line_submission in zip(r1,r2):
 
-        res_fm = -1.0
-        if fm is True:
-            res_fm = cs.calculateFMMetric(target, submission)
+            res_fm = -1.0
+            if fm is True:
+                res_fm = cs.calculateFMMetric(line_target, line_submission)
 
-        res_am = -1.0
-        if am is True:
-            res_am = min(1.0, cs.calculateAMMetric(target, submission))
+            res_am = -1.0
+            if am is True:
+                res_am = min(1.0, cs.calculateAMMetric(line_target, line_submission))
 
-        res_am_fm = -1.0
-        if am is True and fm is True:
-            res_am_fm = cs.alpha * res_am + (1.0 - cs.alpha) * res_fm
+            res_am_fm = -1.0
+            if am is True and fm is True:
+                res_am_fm = cs.alpha * res_am + (1.0 - cs.alpha) * res_fm
 
-        alpha = cs.alpha
-        res = (res_am_fm, res_am, res_fm, cs.alpha)
+            res = (res_am_fm, res_am, res_fm, cs.alpha)
+            results.append((res_fm, res_am, res_am_fm))
 
-        results = []
-        print('N_SENT,\tFM,\tAM,\tAM_FM')
+    print('N_SENT,\tFM,\tAM,\tAM_FM')
+    for num, line in enumerate(results):
+        print('%i,\t%.5f,\t%.5f,\t%.5f  ' % (num+1, line[0], line[1], line[2]) )
+        #(num+1, results(num+1), results(numa+2), results(num+3))
 
-        # if res is None:
-        #     return
-        # else:
-        #     (res_am, res_fm, res_am_fm, alpha) = res
-        # print('%d,\t%.5f,\t%.5f,\t%.5f  ' % (num + 1, res_fm, res_am, res_am_fm))
-        # results.append((res_fm, res_am, res_am_fm))
+    # Calculate FM global score
+    if fm is True:
+        print('GLOBAL AVERAGE FM: %.5f' % np.average([r[0] for r in results]))
 
-        # Calculate FM global score
-        if fm is True:
-            print('GLOBAL AVERAGE FM: %.5f' % np.average([r[0] for r in results]))
+    # Calculate AM global score
+    if am is True:
+        print('GLOBAL AVERAGE AM: %.5f' % np.average([r[1] for r in results]))
 
-        # Calculate AM global score
-        if am is True:
-            print('GLOBAL AVERAGE AM: %.5f' % np.average([r[1] for r in results]))
+    # Calculate Interpolated AM_FM score
+    if am is True and fm is True:
+        print('GLOBAL AVERAGE AM_FM (%.2f): %.5f' % (alpha, np.average([r[2] for r in results])))
 
-        # Calculate Interpolated AM_FM score
-        if am is True and fm is True:
-            print('GLOBAL AVERAGE AM_FM (%.2f): %.5f' % (alpha, np.average([r[2] for r in results])))
-
-        print('********* END PROCESSING SUBMISSION ************\n')
+    print('********* END PROCESSING SUBMISSION ************\n')
 
 
 class calcScoresAMFM:
@@ -304,7 +303,7 @@ def main():
     parser.add_argument("-fm", "--fm", help="Do not calculate FM score", action="store_false")
     parser.add_argument("-am", "--am", help="Do not calculate AM score", action="store_false")
     parser.add_argument('-c', '--my-config', type=str, dest='MyConfigFilePath', help='config file path')
-    parser.add_argument('-d', '--num_cores', dest='NofCores', help='Number of cores')  # this option can be set in a config file because it starts with '--'
+    parser.add_argument('-d', '--num_cores',type=int, dest='NofCores', help='Number of cores',default=1)  # this option can be set in a config file because it starts with '--'
 
     args = parser.parse_args()
     numcores = args.NofCores
@@ -315,13 +314,13 @@ def main():
         sys.exit()
     else:
         print('The current configuration file you are using is : ' + filepath)
-        print('The number of Cores you setted up to use are: ' + numcores)
+        print('The number of Cores you setted up to use are: ' + str(numcores))
 
 
     with open(filepath, 'r') as ymlfile:
         cfg = yaml.load(ymlfile)
 
-    cs = calcScoresAMFM(dataset=args.dataset, lang=args.lang, am=True, fm=True, cfg=cfg)
+    cs = calcScoresAMFM(lang=args.lang, am=True, fm=True, cfg=cfg)
 
     if args.list is True:
         list_ref = []
