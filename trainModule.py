@@ -41,6 +41,7 @@ class TrainingClass():
     def __init__(self, train_data_dir, filesPerLanguageForLM, filesPerLanguage, dictSizesTrain, cfg):
 
         self.train_data_dir = train_data_dir
+        self.file_out = cfg['directories']['OUTPUT']
         self.filesPerLanguageForLM = filesPerLanguageForLM
         self.filesPerLanguage = filesPerLanguage
         self.dictSizesTrain = dictSizesTrain
@@ -202,9 +203,9 @@ class TrainingClass():
         print("Starting " + file + ' (' + lang + ") and Fold " + str(nF) + ' at ' + str(t1))
         # train_file_path = train_data_dir + file + '.lower.' + lang + '.' + str(size) + '.' + str(nF)
         if lang != 'en' and lang != 'ko' and lang != 'hi':
-            train_file_path = self.train_data_dir + file + '.lower.' + lang + '.' + str(size_file) + '.' + str(nF)
+            train_file_path = self.file_out + file + '.lower.' + lang + '.' + str(size_file) + '.' + str(nF)
         else:
-            train_file_path = self.train_data_dir + file + '.lower.' + lang + '.' + str(size_file) + '.' + str(nF)
+            train_file_path = self.file_out + file + '.lower.' + lang + '.' + str(size_file) + '.' + str(nF)
         # train_file_path = train_data_dir + file + '.lower'
 
         # svd_output_matrix = dir_svd_mono + '/' + file + '.' + lang + '.' + str(size) + '.' + str(nF) + '.mc' + str(MIN_COUNTS) # This is the full matrix without any reduction
@@ -245,7 +246,7 @@ class TrainingClass():
         pool = multiprocessing.Pool(processes=NUM_MAX_CORES)
 
         tmpTask = []
-        for (lang_pair, files) in filesPerLanguage.items():
+        for (lang_pair, files) in self.filesPerLanguage.items():
             print('Processing language pair ' + lang_pair)
             aPrefix = lang_pair.split("-")
             src = aPrefix[0]

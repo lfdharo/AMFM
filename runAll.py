@@ -67,6 +67,7 @@ def main():
                            overwrite_all=overwrite_all)
     #raw_input('Press a key to continue')
 
+    print('******************TrainClass********************')
     # Training SVD and creating training files
     tM = tm.TrainingClass(train_data_dir=cfg['directories']['INPUT'],
                           filesPerLanguageForLM=filesPerLanguageForLM,
@@ -74,7 +75,7 @@ def main():
                           dictSizesTrain=dictSizesTrain,
                           cfg=cfg)
     tM.createOutputDirs()
-    tM.fntTrainLMs(train_data_dir=cfg['directories']['INPUT'],
+    tM.fntTrainLMs(train_data_dir=cfg['directories']['OUTPUT'],
                    filesPerLanguageForLM=filesPerLanguageForLM,
                    overwrite_all=overwrite_all) #ayuda para dejar esto clean
     tM.fntCreateSVDs(args=args)

@@ -390,40 +390,40 @@ class PreProcessingClass():
             for file in files:
                 file_src = self.train_data_dir + file + '.' + src
                 if os.path.exists(file_src):
-                    filename_token = self.train_data_dir + file + '.token.' + src
+                    filename_token = self.file_out + file + '.token.' + src
                     if not os.path.exists(filename_token) or bDoAll is True:
                         print('Adding file ' + file_src + ' for tokenization list')
                         files_to_tokenize.append((file_src, src, filename_token)) #añadimso a la lista los archivos para tokenizarç
 
-                    filename_proc = self.train_data_dir + file + '.lower.' + src
+                    filename_proc = self.file_out + file + '.lower.' + src
                     if not os.path.exists(filename_proc) or bDoAll is True:
                         print('Adding file ' + file_src + ' for preprocessing list')
                         files_to_preprocess.append((file_src, src, filename_proc)) #añadimos a la lista de preprocess= lowerCasing los archivos de clean(deberian ser los archivos de token
 
-                    filename_clean = self.train_data_dir + file + '.clean.' + src
+                    filename_clean = self.file_out + file + '.clean.' + src
                     if not os.path.exists(filename_clean) or bDoAll is True:
                         print('Adding file ' + file_src + ' for cleaning list')
-                        files_to_clean.append((self.train_data_dir + file, src, tgt))
+                        files_to_clean.append((self.file_out + file, src, tgt))
 
                 else:
                     print('ERROR: file: ' + file_src + ' does not exists.')
 
                 file_tgt = self.train_data_dir + file + '.' + tgt
                 if os.path.exists(file_tgt):
-                    filename_token = self.train_data_dir + file + '.token.' + tgt
+                    filename_token = self.file_out + file + '.token.' + tgt
                     if not os.path.exists(filename_token) or bDoAll is True:
                         print('Adding file ' + file_tgt + ' for tokenization list')
                         files_to_tokenize.append((file_tgt, tgt, filename_token))
 
-                    filename_proc = self.train_data_dir + file + '.lower.' + tgt
+                    filename_proc = self.file_out + file + '.lower.' + tgt
                     if not os.path.exists(filename_proc) or bDoAll is True:
                         print('Adding file ' + file_tgt + ' for preprocessing list')
                         files_to_preprocess.append((file_tgt, tgt, filename_proc))
 
-                    filename_clean = self.train_data_dir + file + '.clean.' + tgt
+                    filename_clean = self.file_out + file + '.clean.' + tgt
                     if not os.path.exists(filename_proc) or bDoAll is True:
                         print('Adding file ' + file_tgt + ' for cleaning list')
-                        files_to_clean.append((self.train_data_dir + file, src, tgt))
+                        files_to_clean.append((self.file_out + file, src, tgt))
                 else:
                     print('ERROR: file: ' + file_tgt + ' does not exists.')
 
@@ -433,12 +433,12 @@ class PreProcessingClass():
             for file in files:
                 file_for_lm = self.train_data_dir + file + '.' + lang
                 if os.path.exists(file_for_lm):
-                    filename_token = self.train_data_dir + file + '.token.' + lang
+                    filename_token = self.file_out + file + '.token.' + lang
                     if not os.path.exists(filename_token) or bDoAll is True:
                         print('Adding file ' + file_for_lm + ' for tokenization list')
                         files_to_tokenize.append((file_for_lm, lang, filename_token))
 
-                    filename_proc = self.train_data_dir + file + '.lower.' + lang
+                    filename_proc = self.file_out + file + '.lower.' + lang
                     if not os.path.exists(filename_proc) or bDoAll is True:
                         print('Adding file ' + file_for_lm + ' for preprocessing list')
                         files_to_preprocess.append((filename_token, lang, filename_proc))
@@ -668,7 +668,7 @@ class PreProcessingClass():
             src = aPrefix[0]
             tgt = aPrefix[1]
             for file in files:
-                tmpTask.append((TRAIN_DATA_DIR + file, src, tgt, overwrite_all))
+                tmpTask.append((self.file_out + file, src, tgt, overwrite_all))
             # try:
             results = [pool.map(self.createtrainfile_wrapper, tmpTask)]
         # except ValueError:
