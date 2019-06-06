@@ -15,7 +15,7 @@ test:
   NUM_FOLD: 0 # Number of Folds
   alpha: 0.5  # Interpolation value for AM-FM
   ModelsDir: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/client_server/models #lugar donde vamos a tener los modelos ya generados
-
+  TestDir: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/Test
 
 
 

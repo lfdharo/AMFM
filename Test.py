@@ -70,7 +70,7 @@ def demo():
 
 def processSubmissionNew(target, submission, cs, fm, am):
     ### if de que si target y submission ya estan preprocesados no hacer nada de preprocesado
-    #(target, submission) = cs.doProcessFromStrings(ref=target, pred=submission)
+    (target, submission) = cs.doProcessFromStrings(ref=target, pred=submission)
     results = []
     alpha = cs.alpha
     with open(target,'r') as r1, open(submission,'r') as r2:
@@ -129,7 +129,7 @@ class calcScoresAMFM:
         self.fm = fm
         self.cache_lm = dict()  # Store previously calculated n-gram values for speed
         self.models_dir = cfg['test']['ModelsDir']
-
+        self.TestDir= cfg['test']['TestDir']
         if self.am is True:
             # Check that the AM models exist
             am_full_matrix = self.models_dir + '/' + self.DATASET_DIR + '/' + self.PREFIX_AM_FM + '.' + lang + '.' \
@@ -172,27 +172,38 @@ class calcScoresAMFM:
     # Pre-Processing for each sentence. In the case of languages different to English we perform tokenization
     # per character
     def preProcess(self, s, lang):
-        if len(s) == 0:  # To avoid empty lines
-            return '_EMPTY_'
 
-        # Remove some punctuation
-        s = s.translate(table)
-        if lang == 'my':  # we need to remove separation for | and -
-            for k, v in table_separate.iteritems():
-                if v == u' |' or v == u' -':
-                    table_separate[k] = v.strip()
-        s = s.translate(table_separate)
+        # Creates the specfic File in "Files_input" for storing all the out put files related to each Language
+        if not os.path.exists('preProcessed'):
+            print("...creating " + 'preProcessed')
+            os.makedirs('preProcessed')
 
-        # Tokenization by characters for most of Asian languages except for English, Indian, Korean and Myanmar
-        if lang != 'en' and lang != 'in' and lang != 'ko' and lang != 'hi' and lang != 'my':
-            tokens = [' '.join([c for c in list(word.strip())]) for word in s.split()]
-        else:
-            tokens = s.split()
-            if lang == 'my':  # We need to replace the | for -
-                tokens = [x.replace('|', '-') for x in tokens]
+        decompositionOfThePath = s.split('/')
+        filename = decompositionOfThePath[len(decompositionOfThePath)-1] #we extract the filename
 
-        s = ' '.join(tokens).lower()
-        return s
+        with open(s, 'r') as f_in, open(self.TestDir+'/preProcessed/'+filename, 'w+') as f_out:
+            for line in f_in:  # f_in.readlines():
+                if len(line) == 0:  # To avoid empty lines
+                    return '_EMPTY_'
+                # Remove some punctuation
+                s = line.translate(table)
+                if lang == 'my':  # we need to remove separation for | and -
+                    for k, v in table_separate.iteritems():
+                        if v == u' |' or v == u' -':
+                            table_separate[k] = v.strip()
+                s = s.translate(table_separate)
+
+                # Tokenization by characters for most of Asian languages except for English, Indian, Korean and Myanmar
+                if lang != 'en' and lang != 'in' and lang != 'ko' and lang != 'hi' and lang != 'my':
+                    tokens = [' '.join([c for c in list(word.strip())]) for word in s.split()]
+                else:
+                    tokens = s.split()
+                    if lang == 'my':  # We need to replace the | for -
+                        tokens = [x.replace('|', '-') for x in tokens]
+
+                s = ' '.join(tokens).lower()
+                f_out.write(s + '\n')
+        return f_out.name
 
     # Function to calculate the FM metric using language models
     def calculateFMMetric(self, ref, tst):
