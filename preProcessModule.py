@@ -14,22 +14,23 @@ import sys
 import string
 
 
-sc = set(['-', "'", '%'])
-to_remove = ''.join([c for c in string.punctuation if c not in sc])
-table = dict((ord(char), u'') for char in to_remove)
-
-sc = set([',', '!', '?', '.'])
-to_separate = ''.join([c for c in string.punctuation if c not in sc])
-table_separate = dict((ord(char), u' ' + char) for char in to_separate)
-
-
-lang_char_tokenization = ['jp', 'cn', 'ko']
 
 
 class PreProcessingClass():
+    """ Class that holds all the necessary parameters for preProcessing the files for Train purposes"""
 
     def __init__(self, submissionsPerLanguagePerYear, filesPerLanguage, filesPerLanguageForLM, train_data_dir,
                  scripts_dir, submissions_dir, cfg):
+        """
+
+        :param submissionsPerLanguagePerYear: This is currently not being used for this implementation
+        :param filesPerLanguage: Files seted up in the configuration file "yaml" for training the SVD
+        :param filesPerLanguageForLM: Files setted up in the configuration file "yaml" for training the LM
+        :param train_data_dir: Directory for the train data it is related with the cfg INPUT
+        :param scripts_dir: directory where the scripts if needed are
+        :param submissions_dir: directory for the Train process
+        :param cfg: path for your configuration file
+        """
         global SCRIPTS_DIR
         global TRAIN_DATA_DIR
 
@@ -42,41 +43,56 @@ class PreProcessingClass():
         self.cfg = cfg
         self.lang_char_tokenization = cfg['preProcessModule']['lang_char_tokenization']
         self.file_out = cfg['directories']['OUTPUT']
+
+        self.sc = set(['-', "'","%"])
+        self.to_remove = ''.join([c for c in string.punctuation if c not in self.sc])
+        self.to_remove= self.to_remove +"“"+"”" #We had some extra characters to remove from texts
+        self.table = dict((ord(char), u' ') for char in self.to_remove) #We replace the characters in the list(strg) with a blanc space = u' ' ( unicode blanc space)
+
+        self.sc = set([',', '!', '?', '.'])
+        self.to_separate = ''.join([c for c in string.punctuation if c not in self.sc])
+        self.table_separate = dict((ord(char), u' ' + char + u' ') for char in self.to_separate) # We separate the characters in the list(strg) with a blanc space = u' ' ( unicode blanc space)
+
         SCRIPTS_DIR = scripts_dir
         TRAIN_DATA_DIR = train_data_dir
 
-
-
-
-    # Basic method to perform basic Tokenization
-    def preProcessWork(self, sentence, lang): #metodo que ejecuta linea a linea la tokenizacion
+    def preProcessWork(self, sentence, lang):
+        """"
+        Basic method to perform basic Tokenization line by line
+        """
 
         if len(sentence) == 0:  # To avoid empty lines
             return '_EMPTY_'
 
         # Remove some punctuation
-        s = sentence.translate(table)
+        s = sentence.translate(self.table)
         if lang == 'my':  # we need to remove separation for | and -
-            for k, v in table_separate.iteritems():
+            for k, v in self.table_separate.iteritems():
                 if v == u' |' or v == u' -':
-                    table_separate[k] = v.strip()
-        s = s.translate(table_separate)
+                    self.table_separate[k] = v.strip()
+        # Replaces especial characters in to " '@%' " = " ' @ % ' "
+        s = s.translate(self.table_separate)
 
         # Tokenization by characters for most of Asian languages except for English, Indian, Korean and Myanmar
 
-        if lang != 'en' and lang != 'in' and lang != 'ko' and lang != 'hi' and lang != 'my':
+        if lang != 'en' and lang != 'in' and lang != 'ko'  and lang != 'my': #and lang != 'ta':and lang != 'hi'
             tokens = [' '.join([c for c in list(word.strip())]) for word in s.split()]
-        else:
+
+        else: #other langauges such as Chinese, Japanese, Hindi and Tamil
             tokens = s.split()
             if lang == 'my':  # We need to replace the | for -
                 tokens = [x.replace('|', '-') for x in tokens]
 
         s = ' '.join(tokens)
-        # s = ' '.join(tokens).lower()
         return s
 
-    ######### FIRST STEP OF PREPROCESSING ############
+
     def tokenize(self, list_files_tokenize):
+        """
+        Method that initalizes the tokenization process
+        :param list_files_tokenize: list of files that we want to get tokenized
+        :return:
+        """
         print("***** Tokenizing files ******")
         t1 = datetime.datetime.now()
         print("Starting at " + str(t1))
@@ -90,20 +106,27 @@ class PreProcessingClass():
         print("... Done tokenization in: %s " % (t2-t1))
 
     def tokenize_wrapper(self, args):
+        """
+        Wrapper for the tokenizer
+        """
         return self.tokenizeFile(*args)
 
     def tokenizeFile(self, filename_in, lang, filename_out):
-
+        """
+        Method that gets as input the files that has to be tokenized and passes each sentence of thsi file to the tokenizer
+        :param filename_in: File path that has to be tokenized
+        :param lang: Language in which the file is
+        :param filename_out: File path for the outputs
+        :return:
+        """
         if self.cfg['preProcessModule']['Tokenize'] == True: #si queremos ejecutar la tokenizacion
-            with open(filename_in, 'r') as f_in, open(filename_out, 'w') as f_out:
+            with open(filename_in, 'r') as f_in, open(filename_out, 'w',encoding='utf-8') as f_out:
                 for line in f_in: #f_in.readlines():
                      linetokenized = self.preProcessWork(line,lang)
                      f_out.write(linetokenized+'\n')
 
         else:
             cmd = self.cfg['preProcessModule']['Tokenize_Script']  #insert your own line for tokenizing files
-        #instead of using the cmd script you can use any other script for tokenizing the files
-
 
         if not os.path.exists(filename_out) or os.path.getsize(filename_out) == 0:
             print('ERROR: tokenizing file ' + filename_in)
@@ -116,10 +139,14 @@ class PreProcessingClass():
 
     ######### THIRD STEP OF PREPROCESSING ############
     def clean(self, list_files_clean):
+        """
+        Method of the preporcess incharge of reciving as inputs the files already tokenized and lower cased and applies some restrictions to the sentences forming the file depending on the language
+        :param list_files_clean: List of files that we want to clean
+        :return:
+        """
         print("***** cleaning files ******")
         t1 = datetime.datetime.now()
         print("Starting at " + str(t1))
-        # pool = multiprocessing.Pool(processes=NUM_CORES_MAX)
         pool = multiprocessing.Pool(processes=self.cfg['preProcessModule']['NUM_CORES_MAX'])
         results = [pool.map(self.clean_wrapper, list_files_clean)]
         for res in results[0]:
@@ -130,23 +157,34 @@ class PreProcessingClass():
         print("... Done cleaning in: %s " % (t2 - t1))
 
     def clean_wrapper(self, args):
+        """
+                Wrapper for the cleaner
+                """
         return self.cleanFile(*args)
 
     def cleanFile(self, file, src, tgt):
+        """
+        Method in charged of cleaning the files,as input recieves the output from the last preprocessing step in this case lowe cassing nad applies restrictions to sentence length depending on their language, this done to not get empty
+        sentences or not getting sentences that are way to long
+        :param file: path of the file that has to be clean
+        :param src: language of one of the files
+        :param tgt: language of one of the files
+        :return:
+        """
         filename_in_src = file + '.lower.' + src
         filename_in_tgt = file + '.lower.' + tgt
 
         file_out_src_clean = file + '.clean.' + src
         file_out_tgt_clean= file + '.clean.' + tgt
 
-        if src in lang_char_tokenization:
+        if src in self.lang_char_tokenization:
             MIN_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH_CHARS']
             MAX_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH_CHARS']
         else:
             MIN_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH']
             MAX_SENTENCE_SRC_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH']
 
-        if tgt in lang_char_tokenization:
+        if tgt in self.lang_char_tokenization:
             MIN_SENTENCE_TGT_LENGTH = self.cfg['preProcessModule']['MIN_SENTENCE_LENGTH_CHARS']
             MAX_SENTENCE_TGT_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH_CHARS']
         else:
@@ -154,7 +192,7 @@ class PreProcessingClass():
             MAX_SENTENCE_TGT_LENGTH = self.cfg['preProcessModule']['MAX_SENTENCE_LENGTH']
 
         with open(filename_in_src, 'r') as r1, open(filename_in_tgt, 'r') as r2, \
-                open(file_out_src_clean,'w') as w1, open(file_out_tgt_clean, 'w') as w2:
+                open(file_out_src_clean,'w',encoding='utf-8') as w1, open(file_out_tgt_clean, 'w',encoding='utf-8') as w2:
             for line_src, line_tgt in zip(r1, r2):
                 len_line_src = len(line_src.split())
                 len_line_tgt = len(line_tgt.split())
@@ -178,6 +216,11 @@ class PreProcessingClass():
 
     ########## SECOND STEP OF PREPROCESSING ############
     def preProcessing(self, list_files_lowercase):
+        """
+        Method used for another step of preprocessing in this case lower casing the files
+        :param list_files_lowercase: list of files that need to get lower cased
+        :return:
+        """
         print("***** Lowercasing files ******")
         t1 = datetime.datetime.now()
         print("Starting at " + str(t1))
@@ -192,13 +235,21 @@ class PreProcessingClass():
         print("... Done lowercasing in: %s " % (t2-t1))
 
     def preproc_wrapper(self, args):
+        """
+                      Wrapper for the lower case
+                      """
         return self.preprocFile(*args)
 
     def preprocFile(self, filename_in, lang, filename_out):
-
-        #metodo para pasar a lower casing
+        """
+        Method in charged explicitly of the lower casing, gets as input the file that has to be lower and also the path for writting the results of this process
+        :param filename_in: path of the files
+        :param lang: language in which the file is
+        :param filename_out:path of the output file
+        :return:
+        """
         try:
-            with open(filename_in, 'r') as f_in, open(filename_out, 'w') as f_out:
+            with open(filename_in, 'r') as f_in, open(filename_out, 'w',encoding='utf-8') as f_out:
                 for line in f_in.readlines():
                     f_out.write(line.lower())
             return "OK"
@@ -209,175 +260,29 @@ class PreProcessingClass():
     ##################################################
 
 
-    ########## CREATE TRAINING FILES #################
-
-    def createtrainfile_wrapper(self, args):
-        return self.createTrainingFilesParallel(*args)
-
-    def createTrainingFilesParallel(self, file, src, tgt, make_new=False):
-        print("***** Creating training file for " + file + ' src: ' + src + ' and tgt: ' + tgt + " ******")
-
-        train_file_path_src = file + '.lower.' + src
-        train_file_path_tgt = file + '.lower.' + tgt
-
-        #access to variables that are needed in this method and charging them as local variables
-        NFOLDS = self.cfg['preProcessModule']['NFOLDS']
-        aSizesTrain = [self.cfg['preProcessModule']['aSizesTrain']]  # For WOT2016-JA-HI los corchetes son necesarios por alguna razon
-
-        if os.path.isfile(train_file_path_src) and os.path.isfile(train_file_path_tgt):
-            # if (make_new is True) :
-            # First step is to read the src and load unique lines
-            dict_src = {}
-            useful_lines = []
-            iNumLine = 0
-            # with codecs.open(train_file_path_src, 'r', 'utf-8', errors='ignore') as f: buffering=None, encoding=None, errors=None, newline=None, closefd=True
-            with open(train_file_path_src, 'r', encoding='utf-8', errors='ignore') as f:
-                for src_sent in f:
-                    # src_sent= unicode(src_sent,errors='ignore')
-                    if src_sent not in dict_src:
-                        dict_src[src_sent] = 1
-                        useful_lines.append(iNumLine)  # Save the line number
-                    iNumLine += 1
-            # len_src = len(useful_lines)
-            del dict_src  # Save memory
-
-            dict_tgt = {}
-            iNumLine = 0
-            pointerSrc = 0
-            final_useful_lines = []
-            # with codecs.open(train_file_path_tgt, 'r', 'utf-8') as f:
-            with open(train_file_path_tgt, 'r', encoding='utf-8', errors='ignore') as f:
-                for tgt_sent in f:
-                    if iNumLine < useful_lines[pointerSrc]:  # This line was in the src
-                        iNumLine += 1
-                        continue
-
-                    if tgt_sent not in dict_tgt:
-                        dict_tgt[tgt_sent] = 1
-                        final_useful_lines.append(iNumLine)
-                    iNumLine += 1
-                    pointerSrc += 1
-                    if pointerSrc >= len(useful_lines):
-                        break
-
-            del useful_lines
-            del dict_tgt  # Save memory
-
-            # ToDo: Sentences should be selected not randomly but based also on the similarity score. Lines are sorted
-            # following this criteria. In our case we should select only good ones.
-            for size in aSizesTrain:
-                if size > len(final_useful_lines):
-                    print(
-                        "ERROR: The size is higher than the size (%d) of the data (%d) for file (%s) and langs (%s-%s)" % (
-                            size, len(final_useful_lines), file, src, tgt))
-                    return "NO"
-
-                step = int(floor(len(final_useful_lines) / (NFOLDS * size)))
-                if step >= 1:  # there are enough sentences for NFOLDS, if not then we need to do sampling with replacement
-                    # rand_numbers = final_useful_lines[:NFOLDS*size+1]  # We target only the first lines since they are the best
-                    rand_numbers = final_useful_lines[:]  # Random selection is needed for JA-CN pairs
-                    random.shuffle(rand_numbers)
-                else:
-                    rand_numbers = []
-                    for nF in range(NFOLDS):
-                        rand_numbers = rand_numbers + random.sample(final_useful_lines, size)
-
-                for nF in range(NFOLDS):
-                    rand_numbers_n = sorted(rand_numbers[nF * size:(nF + 1) * size])
-                    train_file_out_path_src = train_file_path_src + '.' + str(size) + '.' + str(nF)
-                    train_file_out_path_tgt = train_file_path_tgt + '.' + str(size) + '.' + str(nF)
-                    t1 = datetime.datetime.now()
-                    if (not os.path.isfile(train_file_out_path_src)) or make_new is True:
-                        print("Creating " + train_file_out_path_src)
-
-                        # Create the new training files
-                        # h_file_src = codecs.open(train_file_out_path_src, 'w', 'utf-8')
-                        h_file_src = open(train_file_out_path_src, 'w')
-                        added = 0
-                        numLine = 0
-                        # with codecs.open(train_file_path_src, 'r', 'utf-8') as f:
-                        with open(train_file_path_src, 'r',encoding='utf-8', errors='ignore') as f:
-                            for i in rand_numbers_n:
-                                while (numLine <= i):
-                                    tgt_sent = f.readline()
-                                    numLine += 1
-
-                                h_file_src.writelines(tgt_sent)
-                                added = added + 1
-                                if added > size:
-                                    break
-
-                        h_file_src.close()
-
-                        if added != size:
-                            print("ERROR: added only " + str(added) + "instead of " + str(
-                                size) + " for src: " + train_file_out_path_src)
-                            return "NO"
-
-                    if (not os.path.isfile(train_file_out_path_tgt)) or make_new == True:
-                        print("Creating " + train_file_out_path_tgt)
-
-                        # Create the new training files
-                        # h_file_tgt = codecs.open(train_file_out_path_tgt, 'w', 'utf-8')
-                        h_file_tgt = open(train_file_out_path_tgt, 'w')
-
-                        added = 0
-                        numLine = 0
-                        # with codecs.open(train_file_path_tgt, 'r', 'utf-8') as f:
-                        with open(train_file_path_tgt, 'r') as f:
-                            for i in rand_numbers_n:
-                                while (numLine <= i):
-                                    tgt_sent = f.readline()
-                                    numLine += 1
-
-                                h_file_tgt.writelines(tgt_sent)
-                                added = added + 1
-                                if added > size:
-                                    break
-                        h_file_tgt.close()
-                        if added != size:
-                            print("ERROR: added only " + str(added) + "instead of " + str(
-                                size) + " for tgt: " + train_file_out_path_tgt)
-                            return "NO"
-
-                    t2 = datetime.datetime.now()
-                    print("Execution time: %s" % (t2 - t1))
-
-            return "OK"
-        else:
-            print("ERROR: in " + file + " for files src: " + src + ' or tgt: ' + tgt + ' check that they exist')
-            return "NO"
-
-    def createTrainingFiles(self, filesPerLanguage, overwrite_all=False):
-        print("***** Creating training files ******")
-        pool = multiprocessing.Pool(processes= self.cfg['preProcessModule']['NUM_CORES_MAX'])
-
-        tmpTask = []
-        for (lang_pair, files) in filesPerLanguage.items():
-            print('Processing language pair ' + lang_pair)
-            aPrefix = lang_pair.split("-")
-            src = aPrefix[0]
-            tgt = aPrefix[1]
-            for file in files:
-                tmpTask.append((TRAIN_DATA_DIR + file, src, tgt, overwrite_all))
-            # try:
-            results = [pool.map(self.createtrainfile_wrapper, tmpTask)]
-        # except ValueError:
-        #  print("UTF8 error ")
-        if len(results[0]) != len(tmpTask):
-            print("ERROR: Creating training files")
-            exit(-1)
-        print("... Done")
-
-    ##################################################
-
-    ########## PREPROCESS FILES #################   Prepares and sets up directories for the preprocessing process
+    ########## PREPROCESS FILES #################
 
     def preprocess_files(self, bDoAll=False):
+        """
+        Prepares and sets up directories for the preprocessing process
+        :param bDoAll:
+        :return:
+        """
         # Perform pre-processing for all files in a give directory
         files_to_tokenize = []
         files_to_clean = []
         files_to_preprocess = []
+
+        # Creates the specfic File in "Files_input" for storing all the out put files related to each Language
+        if not os.path.exists(self.file_out):
+            print("...creating " + self.file_out)
+            os.makedirs(self.file_out)
+
+        # Creates the specfic File in "Files_output" for storing all the out put files related to each Language
+        if not os.path.exists(self.train_data_dir):
+            print("...creating " + self.train_data_dir)
+            os.makedirs(self.train_data_dir)
+
 
         # First the parallel corpus
         print('Detecting files to pre-process')
@@ -387,18 +292,25 @@ class PreProcessingClass():
             src = aPrefix[0]
             tgt = aPrefix[1]
 
+            corpus = files[0].split('/')
+
+            # Creates the specfic File in "Files_output" for storing all the out put files related to each Language
+            if not os.path.exists(self.file_out + str(corpus[0])):
+                print("...creating " + self.file_out + str(corpus[0]))
+                os.makedirs(self.file_out + str(corpus[0]))
+
             for file in files:
                 file_src = self.train_data_dir + file + '.' + src
                 if os.path.exists(file_src):
                     filename_token = self.file_out + file + '.token.' + src
                     if not os.path.exists(filename_token) or bDoAll is True:
                         print('Adding file ' + file_src + ' for tokenization list')
-                        files_to_tokenize.append((file_src, src, filename_token)) #añadimso a la lista los archivos para tokenizarç
+                        files_to_tokenize.append((file_src, src, filename_token)) #We add to the list the files that we want to apply tokenization
 
                     filename_proc = self.file_out + file + '.lower.' + src
                     if not os.path.exists(filename_proc) or bDoAll is True:
                         print('Adding file ' + file_src + ' for preprocessing list')
-                        files_to_preprocess.append((file_src, src, filename_proc)) #añadimos a la lista de preprocess= lowerCasing los archivos de clean(deberian ser los archivos de token
+                        files_to_preprocess.append((filename_token, src, filename_proc)) #añadimos a la lista de preprocess= lowerCasing los archivos de clean(deberian ser los archivos de token
 
                     filename_clean = self.file_out + file + '.clean.' + src
                     if not os.path.exists(filename_clean) or bDoAll is True:
@@ -418,7 +330,7 @@ class PreProcessingClass():
                     filename_proc = self.file_out + file + '.lower.' + tgt
                     if not os.path.exists(filename_proc) or bDoAll is True:
                         print('Adding file ' + file_tgt + ' for preprocessing list')
-                        files_to_preprocess.append((file_tgt, tgt, filename_proc))
+                        files_to_preprocess.append((filename_token, tgt, filename_proc))
 
                     filename_clean = self.file_out + file + '.clean.' + tgt
                     if not os.path.exists(filename_proc) or bDoAll is True:
@@ -518,12 +430,20 @@ class PreProcessingClass():
 
     ##################################################
 
-    ########## CREATE TRAINING FILES ################# Called after preprocessing if files already preprocessed skip preprocessfiles
+    ########## CREATE TRAINING FILES #################
 
     def createtrainfile_wrapper(self, args):
         return self.createTrainingFilesParallel(*args)
 
     def createTrainingFilesParallel(self, file, src, tgt, make_new=False):
+        """
+        Methos in charge of creating the files according to the configuration see yaml file
+        :param file: file path that we want to use for creating the file for training
+        :param src: src language
+        :param tgt: tgt language
+        :param make_new:
+        :return:
+        """
         print("***** Creating training file for " + file + ' src: ' + src + ' and tgt: ' + tgt + " ******")
 
         train_file_path_src = file + '.lower.' + src
@@ -531,7 +451,7 @@ class PreProcessingClass():
 
         #access to variables that are needed in this method and charging them as local variables
         NFOLDS = self.cfg['preProcessModule']['NFOLDS']
-        aSizesTrain = [self.cfg['preProcessModule']['aSizesTrain']]  # For WOT2016-JA-HI los corchetes son necesarios por alguna razon
+        aSizesTrain = [self.cfg['preProcessModule']['aSizesTrain']]
 
         if os.path.isfile(train_file_path_src) and os.path.isfile(train_file_path_tgt):
             # if (make_new is True) :
@@ -540,7 +460,7 @@ class PreProcessingClass():
             useful_lines = []
             iNumLine = 0
             # with codecs.open(train_file_path_src, 'r', 'utf-8', errors='ignore') as f: buffering=None, encoding=None, errors=None, newline=None, closefd=True
-            with open(train_file_path_src, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(train_file_path_src, 'r', errors='ignore') as f:
                 for src_sent in f:
                     # src_sent= unicode(src_sent,errors='ignore')
                     if src_sent not in dict_src:
@@ -555,7 +475,7 @@ class PreProcessingClass():
             pointerSrc = 0
             final_useful_lines = []
             # with codecs.open(train_file_path_tgt, 'r', 'utf-8') as f:
-            with open(train_file_path_tgt, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(train_file_path_tgt, 'r', errors='ignore') as f:
                 for tgt_sent in f:
                     if iNumLine < useful_lines[pointerSrc]:  # This line was in the src
                         iNumLine += 1
@@ -601,11 +521,11 @@ class PreProcessingClass():
 
                         # Create the new training files
                         # h_file_src = codecs.open(train_file_out_path_src, 'w', 'utf-8')
-                        h_file_src = open(train_file_out_path_src, 'w')
+                        h_file_src = open(train_file_out_path_src, 'w',encoding='utf-8')
                         added = 0
                         numLine = 0
                         # with codecs.open(train_file_path_src, 'r', 'utf-8') as f:
-                        with open(train_file_path_src, 'r',encoding='utf-8', errors='ignore') as f:
+                        with open(train_file_path_src, 'r', errors='ignore') as f:
                             for i in rand_numbers_n:
                                 while (numLine <= i):
                                     tgt_sent = f.readline()
@@ -628,7 +548,7 @@ class PreProcessingClass():
 
                         # Create the new training files
                         # h_file_tgt = codecs.open(train_file_out_path_tgt, 'w', 'utf-8')
-                        h_file_tgt = open(train_file_out_path_tgt, 'w')
+                        h_file_tgt = open(train_file_out_path_tgt, 'w',encoding='utf-8')
 
                         added = 0
                         numLine = 0
@@ -658,6 +578,12 @@ class PreProcessingClass():
             return "NO"
 
     def createTrainingFiles(self, filesPerLanguage, overwrite_all=False):
+        """
+        Method in charge of creating the files in the way that the training process needs it, this means the way to write the file name as well as what the file must contain
+        :param filesPerLanguage: File path for the files that we want to use for training
+        :param overwrite_all:
+        :return:
+        """
         print("***** Creating training files ******")
         pool = multiprocessing.Pool(processes= self.cfg['preProcessModule']['NUM_CORES_MAX'])
 
@@ -669,10 +595,8 @@ class PreProcessingClass():
             tgt = aPrefix[1]
             for file in files:
                 tmpTask.append((self.file_out + file, src, tgt, overwrite_all))
-            # try:
             results = [pool.map(self.createtrainfile_wrapper, tmpTask)]
-        # except ValueError:
-        #  print("UTF8 error ")
+
         if len(results[0]) != len(tmpTask):
             print("ERROR: Creating training files")
             exit(-1)
@@ -680,7 +604,7 @@ class PreProcessingClass():
 
     ##################################################
 
-def main(): ###Aqui deberimos buscar al forma de meter las variables que se usan en general en los metodos, ademas estas variables cuando lsa funciones son invcoadas desde el runall deben de pasar los parametros??
+def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--my-config', type=str, dest='MyConfigFilePath', required=False,help='config file path')
@@ -702,14 +626,15 @@ def main(): ###Aqui deberimos buscar al forma de meter las variables que se usan
     FilesPerLanguageForLM = cfg['preProcessModule']['filesPerLanguageForLM']
     FilesPerLanguage = cfg['preProcessModule']['filesPerLanguage']
 
-    root_dir = cfg['directories']['INPUT'] # con esta sentencia estamos partiedno el origen desde el Train para bajo
+    root_dir = cfg['directories']['INPUT']
 
     submissions_dir = cfg['preProcessModule']['submissions_dir']
     train_data_dir = cfg['preProcessModule']['train_data_dir']
     scripts_dir = cfg['preProcessModule']['scripts_dir']
 
-    # args = parser.parse_args()
+
     overwrite_all = args.overwrite
+
 
     clPrep = PreProcessingClass(submissionsPerLanguagePerYear=submissionsPerLanguagePerYear,
                                 filesPerLanguage=FilesPerLanguage,

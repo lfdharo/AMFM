@@ -39,6 +39,14 @@ class MyPool(multiprocessing.pool.Pool):
 
 class TrainingClass():
     def __init__(self, train_data_dir, filesPerLanguageForLM, filesPerLanguage, dictSizesTrain, cfg):
+        """
+
+        :param train_data_dir:
+        :param filesPerLanguageForLM:
+        :param filesPerLanguage:
+        :param dictSizesTrain:
+        :param cfg:
+        """
 
         self.train_data_dir = train_data_dir
         self.file_out = cfg['directories']['OUTPUT']
@@ -51,8 +59,12 @@ class TrainingClass():
         self.cfg = cfg
 
 
-    ######### FIRST STEP OF TRAINING ############ Creates the output directories for the training
+    ######### FIRST STEP OF TRAINING ############
     def createOutputDirs(self):
+        """
+        Creates the output directories for the training lms dir and svd dir
+        :return:
+        """
         print("***** Creating output directories *****")
 
         if not os.path.exists(self.dir_lm_out):
@@ -67,12 +79,17 @@ class TrainingClass():
 
     ##################################################
 
-    # crea los modelos de lenguaje a partir de los ficheros que se van a entrenar sin preprocesar
+    #Creates the language models
 
     ######### SECOND STEP OF TRAINING ############
     def fntTrainLMs(self, train_data_dir, filesPerLanguageForLM, overwrite_all=False):
-        #    pool = MyPool(NUM_MAX_CORES)
-        # number_of_workers = NUM_MAX_CORES
+        """
+        Method that creates the lms
+        :param train_data_dir: path of the train directory
+        :param filesPerLanguageForLM: Files that we will use to generate our lm
+        :param overwrite_all:
+        :return:
+        """
         number_of_cores = self.cfg['trainModule']['NUM_MAX_CORES']
 
         with Pool(number_of_cores) as p:
@@ -90,27 +107,26 @@ class TrainingClass():
 
         print("Finish")
 
-
-
     # Todo: Create a single text file with all the filenames or do it manually with all the training data
     def createLM(self, train_data_dir, lang, filename, bRetrain=False):
+        """
+        Creates the language models it self, we use another script called by cmd to perform the lm
+        :param train_data_dir: dir for train dirrectory
+        :param lang: language for which we are training
+        :param filename: name of the file
+        :param bRetrain:
+        :return:
+        """
         # This function extract ngram counts for a given file. If the lm already exists the system skips its creation
         print("***** Extract n-gram counts for language " + lang + " from file: " + filename + " ******")
 
-        txt_file = train_data_dir + '/' + filename + '.' + 'lower' + '.' + lang
-
-        # if lang != 'en':  # We need first to tokenize in characters
-        #     txt_file = train_data_dir + '/' + filename + '.' + lang + '.lower_' + lang
-        #     with codecs.open(train_data_dir + '/' + filename + '.' + lang + '.lower', 'r', 'utf-8') as f, \
-        #             codecs.open(train_data_dir + '/' + filename + '.' + lang + '.lower_' + lang, 'w', 'utf-8') as o:
-        #         for line in f.readlines():
-        #             n_l = ' '.join(list(line.strip()))
-        #             o.write(n_l + '\n')
+        txt_file = train_data_dir  + filename + '.' + 'lower' + '.' + lang
 
         MIN_NGRAM_ORDER = self.cfg['trainModule']['MIN_NGRAM_ORDER']
         MAX_NGRAM_ORDER = self.cfg['trainModule']['MAX_NGRAM_ORDER']
 
         path_file = os.path.dirname(filename)
+
         # Train language models
         if not os.path.exists(self.dir_lm_out + path_file + '/' + lang):
             print("...creating " + self.dir_lm_out + path_file + '/' + lang)
@@ -125,13 +141,13 @@ class TrainingClass():
                     exit(-1)
 
                 print("Creating n-gram counts for file %s and order %d" % (filename, ngram_order))
-                cmd = 'ngram-count -unk -prune 1e-6 -minprune ' + str(ngram_order) + ' -order ' + str(
+                cmd = 'ngram-count -unk -prune 1e-6 ' + ' -order ' + str(
                     ngram_order) + ' -text ' + txt_file + ' -lm ' + lm_file_out
                 print(cmd)
                 p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 for line in p.stdout.readlines():
                     print('---- ' + filename + ' : ' + str(line))
-                retval = p.wait()
+                p.wait()
 
         print("... Done " + lang + ' file: ' + filename)
         return "DONE"
@@ -140,6 +156,11 @@ class TrainingClass():
 
     ######### THIRD STEP OF TRAINING ############
     def fntCreateSVDs(self, args):
+        """
+        Method in hcarge of calling the submethods in charged of generating the SVD amtrices
+        :param args:
+        :return:
+        """
         global aTypeLingualExp
 
         dict_train_sizes = {self.cfg['runall']['dictSizesTrain']['Maxvalue']: self.cfg['runall']['dictSizesTrain'][
@@ -160,6 +181,14 @@ class TrainingClass():
     #metodo para crear las matrices de SVD para el
 
     def createMonolingualSVDFromTrainingFiles(self, size_file, size_svd, nF, retrain_svd):
+        """
+        Method in charge of strating the generaion of the SVD by loading everything on to a pool map to later process it.
+        :param size_file: Number of total lines that we have in hte training file
+        :param size_svd: compressed size to we which we want to reduce it
+        :param nF: Number of folds
+        :param retrain_svd:
+        :return:
+        """
         print("***** Creating Monolingual SVD files for size " + str(size_svd) + " and Fold " + str(nF) + " ******")
         t1 = datetime.datetime.now()
         print("Starting at " + str(t1))
@@ -198,6 +227,16 @@ class TrainingClass():
         return self.createMonolingualSVDforTaskParallel(*args)
 
     def createMonolingualSVDforTaskParallel(self, file, size_file, size_svd, nF, lang, retrain_svd):
+        """
+        Method im charged of generating the SVD matrices it self.
+        :param file: File that we will use for generating the SVD compressed
+        :param size_file: Number of lines that the files has
+        :param size_svd: Final dimension of SVD
+        :param nF: Number of folds
+        :param lang: language in which we are training
+        :param retrain_svd:
+        :return:
+        """
         print("***** Creating Monolingual SVD for file " + file + ' (' + lang + ") and Fold " + str(nF) + " ******")
         t1 = datetime.datetime.now()
         print("Starting " + file + ' (' + lang + ") and Fold " + str(nF) + ' at ' + str(t1))
@@ -219,7 +258,8 @@ class TrainingClass():
             if (not os.path.isfile(svd_output_matrix + '.h5') or not os.path.isfile(svd_output_matrix + '.dic')) \
                     or overwrite_all is True or retrain_svd is True:
                 print('Reading training data from ' + train_file_path)
-                train_data = codecs.open(train_file_path, 'r', 'utf-8')
+                #train_data = codecs.open(train_file_path, 'r', 'utf-8')
+                train_data = codecs.open(train_file_path, 'r') # we asume that encoding is already in utf-8?
                 train_sentences = train_data.readlines()
                 train_data.close()
 

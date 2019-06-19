@@ -48,7 +48,7 @@ def main():
     filesPerLanguageForLM = cfg['runall']['filesPerLanguageForLM']
     filesPerLanguage = cfg['runall']['filesPerLanguage']
     overwrite_all = args.overwrite
-    overwrite_all = True
+    overwrite_all = False
 
 
     # Preprocessing
@@ -75,11 +75,11 @@ def main():
                           dictSizesTrain=dictSizesTrain,
                           cfg=cfg)
     tM.createOutputDirs()
-    tM.fntTrainLMs(train_data_dir=cfg['directories']['OUTPUT'],
+    tM.fntTrainLMs(train_data_dir=cfg['directories']['OUTPUT'], #Note that this directory is the output from the preProcess
                    filesPerLanguageForLM=filesPerLanguageForLM,
-                   overwrite_all=overwrite_all) #ayuda para dejar esto clean
+                   overwrite_all=overwrite_all)
     tM.fntCreateSVDs(args=args)
-
+    print('******************FINISH ALL********************')
 
 if __name__ == '__main__':
     main()
