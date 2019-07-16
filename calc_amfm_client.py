@@ -3,14 +3,14 @@
 
 from __future__ import unicode_literals
 __author__ = 'luisdhe'
-__version__ = "$Revision: 1.0.4 $"
+__version__ = "$Revision: 1.0.5 $"
 
 # Common python modules
-import os, sys, string
 import argparse
 import codecs
 import numpy as np
 import json
+import os
 from socket import *
 
 host = 'localhost'  # '127.0.0.1' can also be used
@@ -47,7 +47,6 @@ def demo():
     # Connecting to socket
     sock.connect((host, DEFAULT_PORT))  # Connect takes tuple of host and port
 
-
     # Example for calculating scores on English as target language
     # Calculate for each submmited sentence, given the reference, the AM, FM and combined scores
     for (target, submission) in zip(target_sentences_en, submission_sentences_en):
@@ -69,7 +68,12 @@ def fntSendDataGetResults(target, submission, lang, sock, am, fm):
     message['am'] = am
     message['fm'] = fm
     message['data'] = ''
-    res_message = sock.send(json.dumps(message))
+
+    res_message = sock.send(json.dumps(message).encode('utf-8'))
+    if res_message <= 0:
+        print ('There was an error and the message was not send')
+        return None
+
     while True:
         res_message = sock.recv(16384)
         if res_message != '':
@@ -104,14 +108,20 @@ def processSubmission(ref, output, sock, am=True, fm=True, lang='en'):
     print('Processing submissions ref=%s and output=%s' % (ref, output))
     try:
         target_sentences = []
-        with codecs.open(ref, 'r', 'utf-8') as f_in:
-            for line in f_in.readlines():
-                target_sentences.append(line.strip())
+        if os.path.exists(ref) is True:
+            with codecs.open(ref, 'r', 'utf-8') as f_in:
+                for line in f_in.readlines():
+                    target_sentences.append(line.strip())
+        else:
+            raise ValueError('The reference file could not be open')
 
         submission_sentences = []
-        with codecs.open(output, 'r', 'utf-8') as f_in:
-            for line in f_in.readlines():
-                submission_sentences.append(line.strip())
+        if os.path.exists(output) is True:
+            with codecs.open(output, 'r', 'utf-8') as f_in:
+                for line in f_in.readlines():
+                    submission_sentences.append(line.strip())
+        else:
+            raise ValueError('The submission file could not be open')
 
         if len(target_sentences) != len(submission_sentences):
             print("******* ERROR: sentence lengths are not the same for files %s (%d) and %s (%d)" % (ref, len(target_sentences), output, len(submission_sentences)))
@@ -121,11 +131,14 @@ def processSubmission(ref, output, sock, am=True, fm=True, lang='en'):
         results = []
         print ('N_SENT,\tFM,\tAM,\tAM_FM')
         for num, (target, submission) in enumerate(zip(target_sentences, submission_sentences)):
-            res = fntSendDataGetResults(target, submission, lang, sock, am, fm)
-            if res is None:
-                return
+            if len(target) > 0 and len(submission) > 0:
+                res = fntSendDataGetResults(target, submission, lang, sock, am, fm)
+                if res is None:
+                    return
+                else:
+                    (res_am, res_fm, res_am_fm, alpha) = res
             else:
-                (res_am, res_fm, res_am_fm, alpha) = res
+                return
             print ('%d,\t%.5f,\t%.5f,\t%.5f  ' % (num+1, res_fm, res_am, res_am_fm))
             results.append((res_fm, res_am, res_am_fm))
 
@@ -144,9 +157,10 @@ def processSubmission(ref, output, sock, am=True, fm=True, lang='en'):
         print('********* END PROCESSING SUBMISSION ************\n')
         msg = dict()
         msg['data'] = 'finish'
-        sock.send(json.dumps(msg))
-    except:
-        print ('ERROR: Skipping submissions ref=%s and output=%s' % (ref, output))
+        sock.send(json.dumps(msg).encode('utf-8'))
+    except Exception as error:
+        print('ERROR: ' + repr(error))
+        print('ERROR: Skipping submissions ref=%s and output=%s' % (ref, output))
 
 
 def main():
