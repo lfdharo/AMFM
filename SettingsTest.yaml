@@ -6,7 +6,7 @@
 
 ###############################################################
 test:
-  DATASET_DIR: JIJI_Original/en_jp
+  DATASET_DIR: IITB/newtry #  CharTokenizationForTa ENTA/NotCharTokenization        WithCharTokenizationForHI
   FULL_AM_SIZE: 2500 # Max size of the trained AM model
   OPT_AM_SIZE: 2000 # Optimal value for the trained AM model
   NUM_TRAINING_SIZE: 20000 # Number of sentences used during training
@@ -14,8 +14,7 @@ test:
   NGRAM_ORDER: 3 # Order the FM score calculation
   NUM_FOLD: 0 # Number of Folds
   alpha: 0.5  # Interpolation value for AM-FM
-  ModelsDir: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/client_server/models #lugar donde vamos a tener los modelos ya generados
-  TestDir: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/Test
-
-
+  ModelsDir: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/Test/models #Dir where the Models will be placed
+  TestDir: /home/enrique/Escritorio/TFG_Pendrive/AMFM/AMFM_TFG2018/Test #Dir for the test
+  preProcess: True
 
