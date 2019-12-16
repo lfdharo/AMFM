@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 __author__ = 'luisdhe' , 'vanmaren'
 __doc__='this script objective is to do some preprocessing to the files that will be used for creating the AMFM models'
 
@@ -16,7 +19,7 @@ import string
 
 
 
-from spacy.tokenizer import Tokenizer
+#from spacy.tokenizer import Tokenizer
 
 
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 __author__ = 'vanmaren'
 __version__ = "$Revision: 0.0.0"
@@ -13,7 +15,7 @@ from scipy.spatial.distance import cosine
 from lm import ArpaLM
 import numpy as np
 import preProcessModuleForTest as pp
-
+import joblib as jlib
 
 
 def processSubmissionNew(target, submission, cs, fm, am, cfg):
@@ -245,15 +247,39 @@ class VSM:
         else:
             tgt = self.cache_refvectors[test_sentence]
 
-        return max(0.0, 1.0 - cosine(ref, tgt))  # Avoid sending negative distances
-
+        #return max(0.0, 1.0 - cosine(ref, tgt))  # Avoid sending negative distances
+        return 1.0 - cosine(ref, tgt)
     # Load models
     def load(self, name_model):
-        print('Loading AM model')
-        self.am = joblib.load(name_model + '.h5')
-        file_h = open(name_model + '.dic', "rb")
-        self.vectorizer = pickle.load(file_h)
-        file_h.close()
+        # WAT2019: added because incompatibilities when reading old files created using python2
+        try:
+            self.am = jlib.load(name_model + '.h5')
+        except:
+            try:
+                self.am = joblib.load(name_model + '.h5')
+            except:
+                file_h = open(name_model + '.h5', "rb")
+                self.am = pickle.load(name_model + '.h5')
+                file_h.close()
+
+        # WAT2019: added because incompatibilities when reading old files created using python2
+        try:
+            self.vectorizer = jlib.load(name_model + '.dic')
+        except:
+            try:
+                self.vectorizer = joblib.load(name_model + '.dic')
+            except:
+                file_h = open(name_model + '.dic', "rb")
+                self.vectorizer = pickle.load(file_h)
+                file_h.close()
+
+        # print('Loading AM model')
+        # with open(name_model + '.h5', 'rb') as f:
+        #     self.am = pickle.load(f, encoding="bytes")
+        # #self.am = joblib.load(name_model + '.h5')
+        # file_h = open(name_model + '.dic', "rb")
+        # self.vectorizer = pickle.load(file_h)
+        # file_h.close()
 
 
 def main():
